@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTT 채팅 서비스</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .chat-container {
+            display: flex;
+            height: 600px;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            padding: 20px;
+        }
+        
+        .room-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .room-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .room-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .room-item.active {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+        
+        .room-name {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .room-type {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #fafafa;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-width: 80%;
+        }
+        
+        .message.own {
+            margin-left: auto;
+            background: #667eea;
+            color: white;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        
+        .message-sender {
+            font-weight: bold;
+        }
+        
+        .message-time {
+            color: #666;
+        }
+        
+        .message.own .message-time {
+            color: #e3f2fd;
+        }
+        
+        .message-content {
+            line-height: 1.4;
+        }
+        
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        
+        .message-input:focus {
+            border-color: #667eea;
+        }
+        
+        .send-btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.3s ease;
+        }
+        
+        .send-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .system-message {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 OTT 채팅 서비스</h1>
+        </div>
+        
+        <div class="status disconnected" id="status">
+            연결 중...
+        </div>
+        
+        <div class="chat-container">
+            <div class="sidebar">
+                <h3>채팅방 목록</h3>
+                <ul class="room-list" id="roomList">
+                    <li class="room-item active" data-room="general">
+                        <div class="room-name">일반 채팅방</div>
+                        <div class="room-type">GENERAL</div>
+                    </li>
+                    <li class="room-item" data-room="netflix">
+                        <div class="room-name">Netflix 채팅방</div>
+                        <div class="room-type">NETFLIX</div>
+                    </li>
+                    <li class="room-item" data-room="disney">
+                        <div class="room-name">Disney+ 채팅방</div>
+                        <div class="room-type">DISNEY_PLUS</div>
+                    </li>
+                    <li class="room-item" data-room="wavve">
+                        <div class="room-name">Wavve 채팅방</div>
+                        <div class="room-type">WAVVE</div>
+                    </li>
+                    <li class="room-item" data-room="tving">
+                        <div class="room-name">Tving 채팅방</div>
+                        <div class="room-type">TVING</div>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="chat-area">
+                <div class="chat-header">
+                    <h2 id="currentRoom">일반 채팅방</h2>
+                </div>
+                
+                <div class="chat-messages" id="messages">
+                    <div class="system-message">
+                        채팅방에 입장했습니다. 메시지를 입력해보세요!
+                    </div>
+                </div>
+                
+                <div class="chat-input">
+                    <div class="input-group">
+                        <input type="text" class="message-input" id="messageInput" placeholder="메시지를 입력하세요..." disabled>
+                        <button class="send-btn" id="sendBtn" disabled>전송</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stompClient = null;
+        let currentRoom = 'general';
+        let username = 'User_' + Math.floor(Math.random() * 1000);
+        
+        // WebSocket 연결
+        function connect() {
+            const socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+            
+            stompClient.connect({}, function (frame) {
+                console.log('Connected: ' + frame);
+                updateStatus(true);
+                enableChat();
+                
+                // 현재 채팅방 구독
+                subscribeToRoom(currentRoom);
+            }, function (error) {
+                console.log('STOMP error: ' + error);
+                updateStatus(false);
+                setTimeout(connect, 5000);
+            });
+        }
+        
+        // 채팅방 구독
+        function subscribeToRoom(room) {
+            if (stompClient) {
+                stompClient.subscribe('/topic/chat/' + room, function (message) {
+                    const chatMessage = JSON.parse(message.body);
+                    displayMessage(chatMessage);
+                });
+            }
+        }
+        
+        // 메시지 전송
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const content = messageInput.value.trim();
+            
+            if (content && stompClient) {
+                const message = {
+                    roomId: currentRoom,
+                    content: content,
+                    senderName: username,
+                    timestamp: new Date().toISOString()
+                };
+                
+                stompClient.send("/app/chat/" + currentRoom, {}, JSON.stringify(message));
+                messageInput.value = '';
+            }
+        }
+        
+        // 메시지 표시
+        function displayMessage(message) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            if (message.senderName === username) {
+                messageDiv.classList.add('own');
+            }
+            
+            const time = new Date(message.timestamp).toLocaleTimeString();
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <span class="message-sender">${message.senderName}</span>
+                    <span class="message-time">${time}</span>
+                </div>
+                <div class="message-content">${message.content}</div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // 상태 업데이트
+        function updateStatus(connected) {
+            const statusDiv = document.getElementById('status');
+            if (connected) {
+                statusDiv.textContent = '연결됨';
+                statusDiv.className = 'status connected';
+            } else {
+                statusDiv.textContent = '연결 끊김';
+                statusDiv.className = 'status disconnected';
+            }
+        }
+        
+        // 채팅 활성화
+        function enableChat() {
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+        }
+        
+        // 채팅방 변경
+        function changeRoom(room) {
+            currentRoom = room;
+            document.getElementById('currentRoom').textContent = 
+                document.querySelector(`[data-room="${room}"] .room-name`).textContent;
+            
+            // 기존 구독 해제
+            if (stompClient) {
+                stompClient.unsubscribe('/topic/chat/' + currentRoom);
+            }
+            
+            // 새 채팅방 구독
+            subscribeToRoom(room);
+            
+            // 메시지 목록 초기화
+            document.getElementById('messages').innerHTML = 
+                '<div class="system-message">채팅방에 입장했습니다. 메시지를 입력해보세요!</div>';
+        }
+        
+        // 이벤트 리스너
+        document.addEventListener('DOMContentLoaded', function() {
+            // WebSocket 연결
+            connect();
+            
+            // 전송 버튼 클릭
+            document.getElementById('sendBtn').addEventListener('click', sendMessage);
+            
+            // Enter 키 입력
+            document.getElementById('messageInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            // 채팅방 클릭
+            document.querySelectorAll('.room-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('.room-item').forEach(r => r.classList.remove('active'));
+                    this.classList.add('active');
+                    changeRoom(this.dataset.room);
+                });
+            });
+        });
+    </script>
+</body>
+</html> 
