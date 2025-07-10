@@ -1,0 +1,53 @@
+spring:
+  # 테스트용 H2 데이터베이스
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  # JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.H2Dialect
+  
+  # MongoDB 설정 (테스트용)
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: ott_chat_test_db
+      auto-index-creation: true
+  
+  # Redis 설정 (테스트용)
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+  
+  # H2 콘솔 비활성화
+  h2:
+    console:
+      enabled: false
+
+# 로깅 설정
+logging:
+  level:
+    com.example.demo: INFO
+    org.springframework.web: INFO
+    org.springframework.data: INFO
+  pattern:
+    console: "%d{HH:mm:ss} - %msg%n"
+
+# 채팅 설정
+chat:
+  message:
+    retention-days: 1  # 테스트용으로 1일로 단축
+    max-length: 100
+  room:
+    max-participants: 10 
