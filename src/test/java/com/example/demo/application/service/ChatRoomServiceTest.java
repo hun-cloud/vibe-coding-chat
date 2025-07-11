@@ -53,9 +53,12 @@ class ChatRoomServiceTest {
         testChatRoom.setRoomType(ChatRoom.RoomType.GENERAL);
         testChatRoom.setCreatedBy(testUser);
 
-        testMember = new ChatRoomMember(testChatRoom, testUser);
-        testMember.setId(1L);
-        testMember.setRole(ChatRoomMember.MemberRole.OWNER);
+        testMember = ChatRoomMember.builder()
+                .id(1L)
+                .chatRoom(testChatRoom)
+                .user(testUser)
+                .role(ChatRoomMember.MemberRole.OWNER)
+                .build();
     }
 
     @Test

@@ -26,17 +26,15 @@ spring:
       port: 27017
       database: ott_chat_db
       auto-index-creation: true
-  
-  # Redis Configuration
-  redis:
-    host: localhost
-    port: 6379
-    timeout: 2000ms
-    lettuce:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 0
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
   
   # H2 Console (for development)
   h2:
@@ -74,4 +72,12 @@ chat:
       - name: "Tving 채팅방"
         ott-type: TVING
       - name: "Watcha 채팅방"
-        ott-type: WATCHA 
+        ott-type: WATCHA
+
+# JWT Configuration
+jwt:
+  secret: your-super-secret-jwt-key-that-is-at-least-256-bits-long-for-security
+  access-token:
+    expiration: 3600000  # 1시간 (밀리초)
+  refresh-token:
+    expiration: 2592000000  # 30일 (밀리초) 
