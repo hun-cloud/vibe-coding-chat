@@ -1,4 +1,4 @@
-package com.example.demo.application.port.out;
+package com.example.demo.domain.repository;
 
 import com.example.demo.domain.entity.ChatMessage;
 
@@ -12,17 +12,17 @@ public interface ChatMessageRepository {
     
     Optional<ChatMessage> findById(String id);
     
-    List<ChatMessage> findByRoomIdOrderByCreatedAtDesc(Long roomId, int page, int size);
+    List<ChatMessage> findByRoomId(Long roomId);
     
-    List<ChatMessage> findByRoomIdAndCreatedAtBetween(Long roomId, LocalDateTime start, LocalDateTime end);
+    List<ChatMessage> findByRoomIdAndCreatedAtAfter(Long roomId, LocalDateTime after);
+    
+    List<ChatMessage> findBySenderId(Long senderId);
+    
+    List<ChatMessage> findRecentMessages(Long roomId, int limit);
     
     void deleteById(String id);
     
     void deleteByRoomId(Long roomId);
     
     long countByRoomId(Long roomId);
-    
-    List<ChatMessage> findUnreadMessages(Long roomId, LocalDateTime lastReadAt);
-    
-    void deleteOldMessages(LocalDateTime before);
 } 

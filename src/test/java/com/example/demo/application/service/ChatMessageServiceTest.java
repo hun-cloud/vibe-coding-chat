@@ -5,7 +5,7 @@ import com.example.demo.application.dto.SendMessageRequest;
 import com.example.demo.application.port.out.ChatMessagePublisher;
 import com.example.demo.application.port.out.ChatMessageRepository;
 import com.example.demo.application.port.out.ChatRoomRepository;
-import com.example.demo.domain.document.ChatMessage;
+import com.example.demo.domain.entity.ChatMessage;
 import com.example.demo.domain.entity.ChatRoomMember;
 import com.example.demo.domain.entity.User;
 import org.junit.jupiter.api.BeforeEach;

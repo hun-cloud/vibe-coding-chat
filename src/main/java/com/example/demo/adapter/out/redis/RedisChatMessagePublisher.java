@@ -1,7 +1,7 @@
-package com.example.demo.infrastructure.adapter.out.redis;
+package com.example.demo.adapter.out.redis;
 
 import com.example.demo.application.port.out.ChatMessagePublisher;
-import com.example.demo.domain.document.ChatMessage;
+import com.example.demo.domain.entity.ChatMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.redis.core.RedisTemplate;

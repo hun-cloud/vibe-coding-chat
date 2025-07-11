@@ -1,4 +1,4 @@
-package com.example.demo.infrastructure.adapter.in.web;
+package com.example.demo.adapter.in.web;
 
 import com.example.demo.application.dto.SendMessageRequest;
 import com.example.demo.application.service.ChatMessageService;

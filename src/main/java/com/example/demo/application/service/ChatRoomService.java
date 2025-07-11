@@ -31,27 +31,27 @@ public class ChatRoomService implements ChatRoomUseCase {
     public ChatRoomDto createChatRoom(CreateChatRoomRequest request, Long userId) {
         User user = userService.getUserById(userId);
         
-        ChatRoom chatRoom = new ChatRoom();
-        chatRoom.setName(request.getName());
-        chatRoom.setDescription(request.getDescription());
-        chatRoom.setRoomType(ChatRoom.RoomType.valueOf(request.getRoomType()));
-        
-        if (request.getOttType() != null) {
-            chatRoom.setOttType(ChatRoom.OttType.valueOf(request.getOttType()));
-        }
-        
-        chatRoom.setMaxParticipants(request.getMaxParticipants());
-        chatRoom.setIsPrivate(request.getIsPrivate());
-        chatRoom.setCreatedBy(user);
+        ChatRoom chatRoom = ChatRoom.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .roomType(ChatRoom.RoomType.valueOf(request.getRoomType()))
+                .ottType(request.getOttType() != null ? ChatRoom.OttType.valueOf(request.getOttType()) : null)
+                .maxParticipants(request.getMaxParticipants())
+                .isPrivate(request.getIsPrivate())
+                .createdBy(user)
+                .build();
         
         ChatRoom savedChatRoom = chatRoomRepository.save(chatRoom);
         
         // 채팅방 생성자를 멤버로 추가
-        ChatRoomMember member = new ChatRoomMember(savedChatRoom, user);
-        member.setRole(ChatRoomMember.MemberRole.OWNER);
+        ChatRoomMember member = ChatRoomMember.builder()
+                .chatRoom(savedChatRoom)
+                .user(user)
+                .role(ChatRoomMember.MemberRole.OWNER)
+                .build();
         chatRoomRepository.saveMember(member);
         
-        return new ChatRoomDto(savedChatRoom);
+        return ChatRoomDto.fromDomain(savedChatRoom);
     }
 
     @Override
@@ -59,12 +59,12 @@ public class ChatRoomService implements ChatRoomUseCase {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new RuntimeException("채팅방을 찾을 수 없습니다: " + roomId));
         
-        ChatRoomDto dto = new ChatRoomDto(chatRoom);
+        ChatRoomDto dto = ChatRoomDto.fromDomain(chatRoom);
         
         // 멤버 정보 추가
         List<ChatRoomMember> members = chatRoomRepository.findMembersByRoomId(roomId);
         List<ChatRoomMemberDto> memberDtos = members.stream()
-                .map(ChatRoomMemberDto::new)
+                .map(ChatRoomMemberDto::fromDomain)
                 .collect(Collectors.toList());
         dto.setMembers(memberDtos);
         dto.setMemberCount(memberDtos.size());
@@ -76,7 +76,7 @@ public class ChatRoomService implements ChatRoomUseCase {
     public List<ChatRoomDto> getChatRoomsByOttType(String ottType) {
         List<ChatRoom> chatRooms = chatRoomRepository.findByOttType(ottType);
         return chatRooms.stream()
-                .map(ChatRoomDto::new)
+                .map(ChatRoomDto::fromDomain)
                 .collect(Collectors.toList());
     }
 
@@ -84,7 +84,7 @@ public class ChatRoomService implements ChatRoomUseCase {
     public List<ChatRoomDto> getPublicChatRooms() {
         List<ChatRoom> chatRooms = chatRoomRepository.findPublicRooms();
         return chatRooms.stream()
-                .map(ChatRoomDto::new)
+                .map(ChatRoomDto::fromDomain)
                 .collect(Collectors.toList());
     }
 
@@ -92,7 +92,7 @@ public class ChatRoomService implements ChatRoomUseCase {
     public List<ChatRoomDto> getUserChatRooms(Long userId) {
         List<ChatRoom> chatRooms = chatRoomRepository.findByUserId(userId);
         return chatRooms.stream()
-                .map(ChatRoomDto::new)
+                .map(ChatRoomDto::fromDomain)
                 .collect(Collectors.toList());
     }
 
@@ -113,7 +113,10 @@ public class ChatRoomService implements ChatRoomUseCase {
             throw new RuntimeException("채팅방이 가득 찼습니다.");
         }
         
-        ChatRoomMember member = new ChatRoomMember(chatRoom, user);
+        ChatRoomMember member = ChatRoomMember.builder()
+                .chatRoom(chatRoom)
+                .user(user)
+                .build();
         chatRoomRepository.saveMember(member);
     }
 

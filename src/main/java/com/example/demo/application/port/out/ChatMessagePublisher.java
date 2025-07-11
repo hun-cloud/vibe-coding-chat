@@ -1,6 +1,6 @@
 package com.example.demo.application.port.out;
 
-import com.example.demo.domain.document.ChatMessage;
+import com.example.demo.domain.entity.ChatMessage;
 
 public interface ChatMessagePublisher {
     

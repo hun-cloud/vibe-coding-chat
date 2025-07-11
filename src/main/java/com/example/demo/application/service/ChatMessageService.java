@@ -6,7 +6,7 @@ import com.example.demo.application.port.in.ChatMessageUseCase;
 import com.example.demo.application.port.out.ChatMessagePublisher;
 import com.example.demo.application.port.out.ChatMessageRepository;
 import com.example.demo.application.port.out.ChatRoomRepository;
-import com.example.demo.domain.document.ChatMessage;
+import com.example.demo.domain.entity.ChatMessage;
 import com.example.demo.domain.entity.ChatRoomMember;
 import com.example.demo.domain.entity.User;
 import org.springframework.data.domain.PageRequest;
@@ -47,13 +47,16 @@ public class ChatMessageService implements ChatMessageUseCase {
         }
 
         // 메시지 생성
-        ChatMessage message = new ChatMessage();
-        message.setRoomId(request.getRoomId());
-        message.setSenderId(userId);
-        message.setContent(request.getContent());
-        message.setMessageType(ChatMessage.MessageType.valueOf(request.getMessageType()));
-        message.setSenderName(user.getNickname() != null ? user.getNickname() : user.getUsername());
-        message.setSenderProfileImage(user.getProfileImage());
+        ChatMessage message = ChatMessage.builder()
+                .roomId(request.getRoomId())
+                .senderId(userId)
+                .content(request.getContent())
+                .messageType(ChatMessage.MessageType.valueOf(request.getMessageType()))
+                .senderName(user.getNickname() != null ? user.getNickname() : user.getUsername())
+                .senderProfileImage(user.getProfileImage())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
 
         // 메시지 저장
         ChatMessage savedMessage = chatMessageRepository.save(message);
@@ -61,7 +64,7 @@ public class ChatMessageService implements ChatMessageUseCase {
         // Redis를 통해 메시지 발행
         chatMessagePublisher.publishMessage(request.getRoomId(), savedMessage);
 
-        return new ChatMessageDto(savedMessage);
+        return ChatMessageDto.fromDomain(savedMessage);
     }
 
     @Override
@@ -74,7 +77,7 @@ public class ChatMessageService implements ChatMessageUseCase {
         List<ChatMessage> messages = chatMessageRepository.findByRoomIdOrderByCreatedAtDesc(roomId, page, size);
         
         return messages.stream()
-                .map(ChatMessageDto::new)
+                .map(ChatMessageDto::fromDomain)
                 .collect(Collectors.toList());
     }
 
@@ -92,7 +95,7 @@ public class ChatMessageService implements ChatMessageUseCase {
         List<ChatMessage> messages = chatMessageRepository.findByRoomIdAndCreatedAtBetween(roomId, startOfDay, endOfDay);
         
         return messages.stream()
-                .map(ChatMessageDto::new)
+                .map(ChatMessageDto::fromDomain)
                 .collect(Collectors.toList());
     }
 
@@ -146,15 +149,18 @@ public class ChatMessageService implements ChatMessageUseCase {
         return unreadMessages.size();
     }
 
-    // 시스템 메시지 전송
-    public void sendSystemMessage(Long roomId, String content) {
-        ChatMessage systemMessage = new ChatMessage();
-        systemMessage.setRoomId(roomId);
-        systemMessage.setSenderId(0L); // 시스템 사용자 ID
-        systemMessage.setContent(content);
-        systemMessage.setMessageType(ChatMessage.MessageType.SYSTEM);
-        systemMessage.setSenderName("시스템");
-        systemMessage.setSenderProfileImage(null);
+            // 시스템 메시지 전송
+        public void sendSystemMessage(Long roomId, String content) {
+            ChatMessage systemMessage = ChatMessage.builder()
+                    .roomId(roomId)
+                    .senderId(0L) // 시스템 사용자 ID
+                    .content(content)
+                    .messageType(ChatMessage.MessageType.SYSTEM)
+                    .senderName("시스템")
+                    .senderProfileImage(null)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
 
         ChatMessage savedMessage = chatMessageRepository.save(systemMessage);
         chatMessagePublisher.publishSystemMessage(roomId, content);
